@@ -14,7 +14,13 @@ import (
 
 	"github.com/kellegous/go/backend"
 	"github.com/kellegous/go/internal"
+
+	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 )
+
+var applicationID = "clientid"
+var tenantID = "directoryid"
+var clientSecret = "applicationpassword"
 
 // Serve a bundled asset over HTTP.
 func serveAsset(w http.ResponseWriter, r *http.Request, name string) {
@@ -120,6 +126,47 @@ func ListenAndServe(backend backend.Backend) error {
 
 		serveAsset(w, r, "edit.html")
 	})
+	mux.HandleFunc("/login/", func(w http.ResponseWriter, r *http.Request) {
+		cred, err := confidential.NewCredFromSecret(clientSecret)
+		if err != nil {
+			fmt.Fprintln(w, "Application creation failure.	")
+		}
+		app, err := confidential.New(applicationID, cred,
+			confidential.WithAuthority("https://login.microsoftonline.com/"+
+				tenantID))
+		if err != nil {
+			panic(err)
+		}
+		result, err := app.AuthCodeURL(context.Background(),
+			applicationID,
+			"https://Return-Host/verify/",
+			[]string{"User.Read"})
+		if err != nil {
+			log.Println(err)
+		}
+		http.Redirect(w, r, result, 301)
+	})
+	mux.HandleFunc("/verify/", func(w http.ResponseWriter, r *http.Request) {
+		cred, err := confidential.NewCredFromSecret(clientSecret)
+		if err != nil {
+			fmt.Fprintln(w, "Application creation failure.")
+		}
+		app, err := confidential.New(applicationID, cred,
+			confidential.WithAuthority("https://login.microsoftonline.com/"+
+				tenantID))
+		if err != nil {
+			fmt.Fprintln(w, err)
+		}
+		key := r.URL.Query().Get("code")
+		result, err := app.AcquireTokenByAuthCode(context.Background(), key,
+			"https://Return-Host/verify/",
+			[]string{"User.Read"})
+		if err != nil {
+			fmt.Fprintln(w, err)
+		}
+		fmt.Fprintln(w, result.Account.HomeAccountID)
+
+	})
 	mux.HandleFunc("/links/", func(w http.ResponseWriter, r *http.Request) {
 		getLinks(backend, w, r)
 	})
@@ -138,5 +185,5 @@ func ListenAndServe(backend backend.Backend) error {
 		mux.Handle("/admin/", &adminHandler{backend})
 	}
 
-	return http.ListenAndServe(addr, mux)
+	return http.ListenAndServeTLS(addr, "cert.pem", "privkey.pem", mux)
 }
