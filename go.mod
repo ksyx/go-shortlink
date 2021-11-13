@@ -5,7 +5,7 @@ go 1.13
 require (
 	cloud.google.com/go v0.38.0
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.3.1
-	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
+	github.com/alexedwards/scs/v2 v2.4.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.5.0
 	github.com/stretchr/testify v1.7.0 // indirect

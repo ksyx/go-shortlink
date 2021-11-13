@@ -29,6 +29,8 @@ func main() {
 		log.Panic(err)
 	}
 
+	web.InitSessionManager()
+
 	// allow env vars to set pflags
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))

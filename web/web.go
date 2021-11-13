@@ -16,11 +16,19 @@ import (
 	"github.com/kellegous/go/internal"
 
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
+	"github.com/alexedwards/scs/v2"
 )
 
 var applicationID = "clientid"
 var tenantID = "directoryid"
 var clientSecret = "applicationpassword"
+
+var SessionManager *scs.SessionManager
+
+func InitSessionManager() {
+	SessionManager = scs.New()
+	SessionManager.Lifetime = time.Hour
+}
 
 // Serve a bundled asset over HTTP.
 func serveAsset(w http.ResponseWriter, r *http.Request, name string) {
@@ -96,6 +104,14 @@ func getLinks(backend backend.Backend, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetUserInfo(w http.ResponseWriter, r *http.Request, name string) string {
+	ad := SessionManager.GetString(r.Context(), name)
+	if ad == "" {
+		http.Redirect(w, r, "/login/", 301)
+	}
+	return ad
+}
+
 // ListenAndServe sets up all web routes, binds the port and handles incoming
 // web requests.
 func ListenAndServe(backend backend.Backend) error {
@@ -164,8 +180,12 @@ func ListenAndServe(backend backend.Backend) error {
 		if err != nil {
 			fmt.Fprintln(w, err)
 		}
-		fmt.Fprintln(w, result.Account.HomeAccountID)
-
+		SessionManager.Put(r.Context(), "azureId", result.Account.HomeAccountID)
+		SessionManager.Put(r.Context(), "name", result.Account.PreferredUsername)
+		http.Redirect(w, r, "/", 301)
+	})
+	mux.HandleFunc("/reverify/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, GetUserInfo(w, r, "name"))
 	})
 	mux.HandleFunc("/links/", func(w http.ResponseWriter, r *http.Request) {
 		getLinks(backend, w, r)
@@ -185,5 +205,5 @@ func ListenAndServe(backend backend.Backend) error {
 		mux.Handle("/admin/", &adminHandler{backend})
 	}
 
-	return http.ListenAndServeTLS(addr, "cert.pem", "privkey.pem", mux)
+	return http.ListenAndServeTLS(addr, "cert.pem", "privkey.pem", SessionManager.LoadAndSave(mux))
 }
