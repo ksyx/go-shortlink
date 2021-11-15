@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"strings"
 	"time"
 )
 
@@ -12,6 +13,7 @@ import (
 type Route struct {
 	URL  string    `json:"url"`
 	Time time.Time `json:"time"`
+	User string    `json:"user"`
 }
 
 // RouteIterator allows iteration of the named routes in the store.
@@ -33,6 +35,10 @@ func (o *Route) Write(w io.Writer) error {
 		return err
 	}
 
+	if _, err := w.Write([]byte(o.User + "$")); err != nil {
+		return err
+	}
+
 	if _, err := w.Write([]byte(o.URL)); err != nil {
 		return err
 	}
@@ -51,8 +57,13 @@ func (o *Route) Read(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-
-	o.URL = string(b)
+	str := string(b)
+	ind := strings.Index(str, "$")
+	if ind != -1 {
+		o.User = str[:ind]
+		str = str[ind+1:]
+	}
+	o.URL = str
 	o.Time = time.Unix(0, t)
 	return nil
 }

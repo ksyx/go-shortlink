@@ -118,6 +118,7 @@ func apiURLPost(backend backend.Backend, host string, w http.ResponseWriter, r *
 	rt := internal.Route{
 		URL:  req.URL,
 		Time: time.Now(),
+		User: GetUserInfo(w, r, "azureId"),
 	}
 
 	if err := backend.Put(ctx, p, &rt); err != nil {
