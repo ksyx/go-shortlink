@@ -145,7 +145,7 @@ func ListenAndServe(backend backend.Backend) error {
 	mux.HandleFunc("/login/", func(w http.ResponseWriter, r *http.Request) {
 		cred, err := confidential.NewCredFromSecret(clientSecret)
 		if err != nil {
-			fmt.Fprintln(w, "Application creation failure.	")
+			fmt.Fprintln(w, "Application creation failure.")
 		}
 		app, err := confidential.New(applicationID, cred,
 			confidential.WithAuthority("https://login.microsoftonline.com/"+

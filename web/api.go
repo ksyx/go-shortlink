@@ -21,8 +21,8 @@ const (
 
 var (
 	errInvalidURL        = errors.New("Invalid URL")
-	errRedirectLoop      = errors.New(" I'm sorry, Dave. I'm afraid I can't do that")
-	genURLPrefix    byte = ':'
+	errRedirectLoop      = errors.New("I'm sorry, Dave. I'm afraid I can't do that")
+	genURLPrefix    byte = '~'
 	postGenCursor        = []byte{genURLPrefix + 1}
 )
 
