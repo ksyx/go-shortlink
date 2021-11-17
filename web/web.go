@@ -145,14 +145,22 @@ func ListenAndServe(backend backend.Backend) error {
 	})
 	mux.HandleFunc("/edit/", func(w http.ResponseWriter, r *http.Request) {
 		p := parseName("/edit/", r.URL.Path)
-
 		// if this is a banned name, just redirect to the local URI. That'll show em.
 		if isBannedName(p) {
 			http.Redirect(w, r, fmt.Sprintf("/%s", p), http.StatusTemporaryRedirect)
 			return
 		}
 
-		serveAsset(w, r, "edit.html")
+		t, err := templateFromAssetFn(editHtml)
+
+		if err != nil {
+			log.Panic(err)
+		}
+
+		if err := t.Execute(w, map[string]string{"user": GetUserInfo(w, r, "name")}); err != nil {
+			log.Panic(err)
+		}
+		// serveAsset(w, r, "edit.html")
 	})
 	mux.HandleFunc("/login/", func(w http.ResponseWriter, r *http.Request) {
 		cred, err := confidential.NewCredFromSecret(clientSecret)

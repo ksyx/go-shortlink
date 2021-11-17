@@ -17,7 +17,7 @@ namespace go {
     // Called with the window resizes.
     var windowDidResize = () => {
         var rect = $frm.getBoundingClientRect();
-        dom.css($frm, 'margin-top', (window.innerHeight / 3 - rect.height / 2) + 'px');
+        // dom.css($frm, 'margin-top', (window.innerHeight / 3 - rect.height / 2) + 'px');
     };
 
     // Called when the URL changes.

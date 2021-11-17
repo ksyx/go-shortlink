@@ -1,4 +1,9 @@
-@import "lib/global";
+body {
+  background: #fff;
+  font-family: 'Work Sans', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+}
 
 .links {
     width: 800px;
@@ -14,7 +19,7 @@
     }
 
     .full-url {
-        color: #ddd;
+        color: rgb(70, 70, 70);
         text-shadow: 1px 1px 0 #fff;
     }
 }
