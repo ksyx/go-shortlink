@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 var applicationID = "clientid"
 var tenantID = "directoryid"
 var clientSecret = "applicationpassword"
+var baseAddr = "https://example.com" // w/o slash at the end
 
 var SessionManager *scs.SessionManager
 
@@ -94,7 +96,7 @@ func getLinks(backend backend.Backend, w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	rts, err := backend.GetAll(ctx)
+	rts, err := backend.GetAll(ctx, GetUserInfo(w, r, "azureId"))
 	if err != nil {
 		log.Panic(err)
 	}
@@ -104,10 +106,20 @@ func getLinks(backend backend.Backend, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func randStr(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+	var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
 func GetUserInfo(w http.ResponseWriter, r *http.Request, name string) string {
 	ad := SessionManager.GetString(r.Context(), name)
 	if ad == "" {
-		http.Redirect(w, r, "/login/", 301)
+		http.Redirect(w, r, "/login/"+randStr(10), http.StatusTemporaryRedirect)
 	}
 	return ad
 }
@@ -155,12 +167,12 @@ func ListenAndServe(backend backend.Backend) error {
 		}
 		result, err := app.AuthCodeURL(context.Background(),
 			applicationID,
-			"https://Return-Host/verify/",
+			baseAddr+"/verify/",
 			[]string{"User.Read"})
 		if err != nil {
 			log.Println(err)
 		}
-		http.Redirect(w, r, result, 301)
+		http.Redirect(w, r, result, http.StatusTemporaryRedirect)
 	})
 	mux.HandleFunc("/verify/", func(w http.ResponseWriter, r *http.Request) {
 		cred, err := confidential.NewCredFromSecret(clientSecret)
@@ -175,14 +187,14 @@ func ListenAndServe(backend backend.Backend) error {
 		}
 		key := r.URL.Query().Get("code")
 		result, err := app.AcquireTokenByAuthCode(context.Background(), key,
-			"https://Return-Host/verify/",
+			baseAddr+"/verify/",
 			[]string{"User.Read"})
 		if err != nil {
 			fmt.Fprintln(w, err)
 		}
 		SessionManager.Put(r.Context(), "azureId", result.Account.HomeAccountID)
 		SessionManager.Put(r.Context(), "name", result.Account.PreferredUsername)
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/?seed="+randStr(10), http.StatusTemporaryRedirect)
 	})
 	mux.HandleFunc("/reverify/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, GetUserInfo(w, r, "name"))
