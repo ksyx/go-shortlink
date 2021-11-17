@@ -1,4 +1,4 @@
-# A "go" short-link service
+# A "go" short-link service with Azure AD
 
 ## Background
 The first time I encountered "go" links was at Google. Anyone on the corporate
@@ -19,13 +19,20 @@ One slight difference between this go service and Google's is that this one is a
 capable of generating short links for you.
 
 ## Installation
-This tool is written in Go (ironically) and can be easily installed  and started
+This tool is written in Go (ironically) and can be easily installed and started
 with the following commands.
 
 ```
-GOPATH=`pwd` go install github.com/kellegous/go
-bin/go
+# git clone
+make # You may need to install dependencies in this step
+# modify head part of web/web.go to fill in azure app info
+cd cmd/go
+go build
+./go
 ```
+
+Rerun `make` with working directory the project root again after any change in
+`web/assets` and rerun `go build` again after any change of go files.
 
 By default, the service will put all of its data in the directory `data` and will
 listen to requests on the port `8067`. Both of these, however, are easily configured
@@ -42,11 +49,20 @@ shortcuts will also be available by typing "go/shortcut".
 ## Using the Service
 Once you have it all setup, using it is pretty straight-forward.
 
-#### Create a new shortcut
+### Listing shortcuts
+Type `go` or `go/links`, which jump to the same page.
+
+### Create a new shortcut
 Type `go/edit/my-shortcut` and enter the URL.
 
-#### Visit a shortcut
+### Visit a shortcut
 Type `go/my-shortcut` and you'll be redirected to the URL.
 
-#### Shorten a URL
+### Shorten a URL
 Type `go` and enter the URL.
+
+### Administrative
+If you want to check out who created specific link, please dump the database,
+with the `admin` option when running, and get the user id. After you get the id,
+go to the Azure Active Directory portal and paste the part of user id before `.`
+in the `Search your tenant` box in the overview page and the result will show up.
