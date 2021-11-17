@@ -21,6 +21,8 @@ const (
 	idLogFilename    = "id"
 )
 
+var UnauthorizedUser = errors.New("link owner mismatch")
+
 // Backend provides access to the leveldb store.
 type Backend struct {
 	// Path contains the location on disk where this DB exists.
@@ -116,18 +118,35 @@ func (backend *Backend) Get(ctx context.Context, name string) (*internal.Route, 
 	return rt, nil
 }
 
+func (backend *Backend) authModify(ctx context.Context, key string, curUser string) error {
+	rtn, err := backend.Get(ctx, key)
+	if err != nil && !errors.Is(err, internal.ErrRouteNotFound) {
+		return err
+	} else if err == nil && curUser != rtn.User {
+		return UnauthorizedUser
+	}
+	return nil
+}
+
 // Put stores a new shortcut in the data store.
 func (backend *Backend) Put(ctx context.Context, key string, rt *internal.Route) error {
 	var buf bytes.Buffer
 	if err := rt.Write(&buf); err != nil {
 		return err
 	}
-
+	err := backend.authModify(ctx, key, rt.User)
+	if err != nil {
+		return err
+	}
 	return backend.db.Put([]byte(key), buf.Bytes(), &opt.WriteOptions{Sync: true})
 }
 
 // Del removes an existing shortcut from the data store.
-func (backend *Backend) Del(ctx context.Context, key string) error {
+func (backend *Backend) Del(ctx context.Context, key string, user string) error {
+	err := backend.authModify(ctx, key, user)
+	if err != nil {
+		return err
+	}
 	return backend.db.Delete([]byte(key), &opt.WriteOptions{Sync: true})
 }
 
@@ -142,7 +161,7 @@ func (backend *Backend) List(ctx context.Context, start string) (internal.RouteI
 }
 
 // GetAll gets everything in the db to dump it out for backup purposes
-func (backend *Backend) GetAll(ctx context.Context) (map[string]internal.Route, error) {
+func (backend *Backend) GetAll(ctx context.Context, curUser string) (map[string]internal.Route, error) {
 	golinks := map[string]internal.Route{}
 	iter := backend.db.NewIterator(nil, nil)
 	defer iter.Release()
@@ -154,7 +173,9 @@ func (backend *Backend) GetAll(ctx context.Context) (map[string]internal.Route, 
 		if err := rt.Read(bytes.NewBuffer(val)); err != nil {
 			return nil, err
 		}
-		golinks[string(key[:])] = *rt
+		if curUser == "adminDump" || curUser == rt.User {
+			golinks[string(key[:])] = *rt
+		}
 	}
 
 	if err := iter.Error(); err != nil {

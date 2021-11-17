@@ -2,6 +2,8 @@ package firestore
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"time"
 
 	fs "cloud.google.com/go/firestore"
@@ -75,7 +77,8 @@ func (backend *Backend) Put(ctx context.Context, key string, rt *internal.Route)
 }
 
 // Del removes an existing shortcut from the data store.
-func (backend *Backend) Del(ctx context.Context, key string) error {
+func (backend *Backend) Del(ctx context.Context, key string, user string) error {
+	fmt.Println("Warning: parameter user not used.")
 	ref := backend.db.Doc("routes/" + key)
 
 	_, err := ref.Delete(ctx)
@@ -84,6 +87,11 @@ func (backend *Backend) Del(ctx context.Context, key string) error {
 	}
 
 	return nil
+}
+
+func (backend *Backend) authModify(ctx context.Context, key string, curUser string) error {
+	println("Not implemented")
+	return http.ErrNotSupported
 }
 
 // List all routes in an iterator, starting with the key prefix of start (which can also be nil).
@@ -103,7 +111,7 @@ func (backend *Backend) List(ctx context.Context, start string) (internal.RouteI
 }
 
 // GetAll gets everything in the db to dump it out for backup purposes
-func (backend *Backend) GetAll(ctx context.Context) (map[string]internal.Route, error) {
+func (backend *Backend) GetAll(ctx context.Context, curUser string) (map[string]internal.Route, error) {
 	golinks := map[string]internal.Route{}
 	col := backend.db.Collection("routes").OrderBy(fs.DocumentID, fs.Asc)
 

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/kellegous/go/backend"
+	"github.com/kellegous/go/backend/leveldb"
 	"github.com/kellegous/go/internal"
 )
 
@@ -122,7 +123,11 @@ func apiURLPost(backend backend.Backend, host string, w http.ResponseWriter, r *
 	}
 
 	if err := backend.Put(ctx, p, &rt); err != nil {
-		writeJSONBackendError(w, err)
+		if errors.Is(err, leveldb.UnauthorizedUser) {
+			writeJSONError(w, err.Error(), http.StatusUnauthorized)
+		} else {
+			writeJSONBackendError(w, err)
+		}
 		return
 	}
 
@@ -163,7 +168,13 @@ func apiURLDelete(backend backend.Backend, w http.ResponseWriter, r *http.Reques
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	if err := backend.Del(ctx, p); err != nil {
+	err := backend.Del(ctx, p, GetUserInfo(w, r, "azureId"))
+	if errors.Is(err, internal.ErrRouteNotFound) {
+		writeJSONError(w, "Not Found", http.StatusNotFound)
+		return
+	} else if errors.Is(err, leveldb.UnauthorizedUser) {
+		writeJSONError(w, err.Error(), http.StatusUnauthorized)
+	} else if err != nil {
 		writeJSONBackendError(w, err)
 		return
 	}
@@ -235,6 +246,7 @@ func apiURLsGet(backend backend.Backend, host string, w http.ResponseWriter, r *
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
+	userName := GetUserInfo(w, r, "azureId")
 	iter, err := backend.List(ctx, string(c))
 	if err != nil {
 		writeJSONBackendError(w, err)
@@ -259,9 +271,9 @@ func apiURLsGet(backend backend.Backend, host string, w http.ResponseWriter, r *
 		if host != "" {
 			r.SourceHost = host
 		}
-
-		res.Routes = append(res.Routes, &r)
-
+		if userName == r.User {
+			res.Routes = append(res.Routes, &r)
+		}
 		if len(res.Routes) == lim {
 			break
 		}

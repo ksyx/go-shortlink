@@ -24,7 +24,7 @@ func adminGet(backend backend.Backend, w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	if p == "dumps" {
-		if golinks, err := backend.GetAll(ctx); err != nil {
+		if golinks, err := backend.GetAll(ctx, "adminDump"); err != nil {
 			writeJSONBackendError(w, err)
 			return
 		} else {

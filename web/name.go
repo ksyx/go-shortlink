@@ -13,6 +13,8 @@ var bannedNames = map[string]bool{
 	"links":   true,
 	"s":       true,
 	"version": true,
+	"login":   true,
+	"verify":  true,
 }
 
 // Parse the shortcut name from the given URL path, given the base URL that is
