@@ -23,6 +23,7 @@ const (
 var (
 	errInvalidURL        = errors.New("Invalid URL")
 	errRedirectLoop      = errors.New("I'm sorry, Dave. I'm afraid I can't do that")
+	errTooManyTries      = errors.New("Error generating link! This is a 1 in 14 million chance!")
 	genURLPrefix    byte = '~'
 	postGenCursor        = []byte{genURLPrefix + 1}
 )
@@ -48,11 +49,28 @@ func encodeID(id uint64) string {
 
 // Advance to the next id and encode it as an ID.
 func nextEncodedID(ctx context.Context, backend backend.Backend) (string, error) {
-	id, err := backend.NextID(ctx)
-	if err != nil {
-		return "", err
+	const genRandomStr bool = true
+	const maxFail int = 5
+	if !genRandomStr {
+		id, err := backend.NextID(ctx)
+		if err != nil {
+			return "", err
+		}
+		return encodeID(id), nil
+	} else {
+		cntFail := 0
+	regen:
+		p := randStr(4)
+		rt, _ := backend.Get(ctx, p)
+		if rt != nil {
+			if cntFail > maxFail {
+				return "", errTooManyTries
+			}
+			cntFail++
+			goto regen
+		}
+		return p, nil
 	}
-	return encodeID(id), nil
 }
 
 // Check that the given URL is suitable as a shortcut link.
@@ -111,7 +129,11 @@ func apiURLPost(backend backend.Backend, host string, w http.ResponseWriter, r *
 		var err error
 		p, err = nextEncodedID(ctx, backend)
 		if err != nil {
-			writeJSONBackendError(w, err)
+			if err == errTooManyTries {
+				writeJSONError(w, err.Error(), http.StatusExpectationFailed)
+			} else {
+				writeJSONBackendError(w, err)
+			}
 			return
 		}
 	}
