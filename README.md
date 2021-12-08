@@ -1,5 +1,9 @@
 # A "go" short-link service with Azure AD
 
+This is a fork of [kellegous](https://github.com/kellegous)[ / go](https://github.com/kellegous/go) on GitHub, with Azure AD support. This fork does not implement
+this functionality on Firestore. You may need to change a few constants to connect
+to your app registration.
+
 ## Background
 The first time I encountered "go" links was at Google. Anyone on the corporate
 network could register a URL shortcut and it would redirect the user to the
