@@ -70,3 +70,8 @@ If you want to check out who created specific link, please dump the database,
 with the `admin` option when running, and get the user id. After you get the id,
 go to the Azure Active Directory portal and paste the part of user id before `.`
 in the `Search your tenant` box in the overview page and the result will show up.
+
+To limit application to approved users only, please visit your Azure Portal, and
+search Enterprise Applications, then enter your application's management page.
+Choose Properties from the sidebar, then choose Yes for `Assignment required`,
+after which you will need to add users approved in `Users and groups` in the sidebar.
